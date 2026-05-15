@@ -1,12 +1,8 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { errorResponse, successResponse } from '../src/utils/response';
-import { streamToString } from '../src/utils/streamToString';
 import { IProduct } from '../src/interfaces/Products.interface';
+import { getJsonFile } from '../src/shared/file-service/fileRepository';
 
-const s3 = new S3Client({});
-
-const BUCKET_NAME = process.env.BUCKET_NAME!;
 const FILE_KEY = 'products.json';
 
 export const handler = async (event: APIGatewayProxyEventV2) => {
@@ -19,14 +15,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
     return errorResponse('Product Id is required', origin, 400);
   }
 
-  const response = await s3.send(
-    new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: FILE_KEY,
-    }),
-  );
-
-  const data = JSON.parse(await streamToString(response.Body));
+  const data = await getJsonFile<IProduct[]>(FILE_KEY);
 
   const productDetails = data.find((i: IProduct) => i.id == productId);
 

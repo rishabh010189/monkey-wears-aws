@@ -1,25 +1,15 @@
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
-import { optionsResponse, successResponse } from '../src/utils/response';
-import { streamToString } from '../src/utils/streamToString';
+import { successResponse } from '../src/utils/response';
+import { getJsonFile } from '../src/shared/file-service/fileRepository';
+import { IProduct } from 'aws-cdk-lib/aws-servicecatalog';
 
-const s3 = new S3Client({});
-
-const BUCKET_NAME = process.env.BUCKET_NAME!;
 const FILE_KEY = 'products.json';
 
 export const handler = async (event: APIGatewayProxyEventV2) => {
   const origin = event.headers.origin;
   const category = event.queryStringParameters?.category;
 
-  const response = await s3.send(
-    new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: FILE_KEY,
-    }),
-  );
-
-  const data = JSON.parse(await streamToString(response.Body));
+  const data = await getJsonFile<IProduct[]>(FILE_KEY);
 
   let filteredData = data;
 

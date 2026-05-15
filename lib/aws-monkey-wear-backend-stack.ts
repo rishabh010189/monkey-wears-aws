@@ -8,15 +8,15 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
-
     // 🪣 S3 Bucket
     const bucket = new s3.Bucket(this, 'ProductBucket', {
       removalPolicy: cdk.RemovalPolicy.DESTROY, // dev only
       autoDeleteObjects: true,
     });
 
-    // ⚡ Lambda (auto-bundled, no zip needed)
+    // ======================
+    // ⚡Lambdas
+    // ======================
     const fn = new lambdaNode.NodejsFunction(this, 'GetProductsFn', {
       runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
       entry: 'lambda/getAllProductsHandler.ts',
@@ -26,18 +26,6 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
       },
     });
 
-    // 🔐 Grant Lambda access to S3
-    bucket.grantRead(fn);
-
-    // 🌐 API Gateway
-    const api = new apigateway.RestApi(this, 'ProductsApi');
-
-    // /products
-    const products = api.root.addResource('products');
-
-    products.addMethod('GET', new apigateway.LambdaIntegration(fn));
-
-    // ⚡ Lambda (auto-bundled, no zip needed)
     const productDetailsLambda = new lambdaNode.NodejsFunction(this, 'GetProductsByIdFn', {
       runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
       entry: 'lambda/getProductByIdHandler.ts',
@@ -47,11 +35,37 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
       },
     });
 
-    // 🔐 Grant Lambda access to S3
+    const searchLambda = new lambdaNode.NodejsFunction(this, 'SearchFn', {
+      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
+      entry: 'lambda/search/searchHandler.ts',
+      handler: 'handler',
+      environment: {
+        BUCKET_NAME: bucket.bucketName,
+      },
+    });
+
+    // ======================
+    // 🔐 Permissions
+    // ======================
+    bucket.grantRead(fn);
     bucket.grantRead(productDetailsLambda);
+    bucket.grantRead(searchLambda);
+
+    // ======================
+    // 🌐API Gateway
+    // ======================
+    const api = new apigateway.RestApi(this, 'MonkeyWearsApi');
+
+    // /products
+    const products = api.root.addResource('products');
+    products.addMethod('GET', new apigateway.LambdaIntegration(fn));
 
     // /products/{productId}
     const productById = products.addResource('{productId}');
     productById.addMethod('GET', new apigateway.LambdaIntegration(productDetailsLambda));
+
+    // /search?q
+    const search = api.root.addResource('search');
+    search.addMethod('GET', new apigateway.LambdaIntegration(searchLambda));
   }
 }
