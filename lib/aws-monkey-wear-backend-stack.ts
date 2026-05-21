@@ -44,12 +44,22 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
       },
     });
 
+    const placeOrderLambda = new lambdaNode.NodejsFunction(this, 'PlaceOrderFn', {
+      runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
+      entry: 'lambda/placeOrder/placeOrderHandler.ts',
+      handler: 'handler',
+      environment: {
+        BUCKET_NAME: bucket.bucketName,
+      },
+    });
+
     // ======================
     // 🔐 Permissions
     // ======================
     bucket.grantRead(fn);
     bucket.grantRead(productDetailsLambda);
     bucket.grantRead(searchLambda);
+    bucket.grantRead(placeOrderLambda);
 
     // ======================
     // 🌐API Gateway
@@ -67,5 +77,9 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
     // /search?q
     const search = api.root.addResource('search');
     search.addMethod('GET', new apigateway.LambdaIntegration(searchLambda));
+
+    // /placeOrder
+    const placeOrder = api.root.addResource('placeOrder');
+    placeOrder.addMethod('POST', new apigateway.LambdaIntegration(placeOrderLambda));
   }
 }
