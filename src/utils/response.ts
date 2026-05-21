@@ -1,7 +1,10 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 
 // setup CORS header
-const allowedOrigins = ['http://localhost:5173', 'https://yourdomain.com'];
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://monkey-wears-frontend.s3-website.ap-south-1.amazonaws.com',
+];
 
 const getHeaders = (origin = '') => {
   const isOriginAllowed = allowedOrigins.includes(origin);
