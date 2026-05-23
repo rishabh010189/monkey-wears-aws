@@ -2,7 +2,9 @@ import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { errorResponse, successResponse } from '../../src/utils/response';
 import { getJsonFile } from '../../src/shared/file-service/fileRepository';
 import { IPlaceOrderRequestBody } from '../../src/interfaces/PlaceOrder.interface';
+import { putJsonFileToS3 } from '../../src/shared/file-service/s3';
 
+const bucket = process.env.BUCKET_NAME!;
 const ORDERS_FILE_KEY = 'orders/orders.json';
 
 export const handler = async (event: APIGatewayProxyEventV2) => {
@@ -30,7 +32,8 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
 
     try {
       const existingFile = await getJsonFile<any>(ORDERS_FILE_KEY);
-      existingOrders = JSON.parse(existingFile);
+      console.log(existingFile);
+      existingOrders = [...existingFile];
     } catch (error: any) {
       // File doesn't exist yet
       if (error.name !== 'NoSuchKey' && error.$metadata?.httpStatusCode !== 404) {
@@ -41,6 +44,10 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
     existingOrders.push(newOrder);
     console.log('SUCCESS');
     console.log(existingOrders);
+
+    // writing back to the json file
+    await putJsonFileToS3({ bucketName: bucket, fileKey: ORDERS_FILE_KEY, data: existingOrders });
+    console.log('SAVED IN DB');
     return successResponse(newOrder, origin);
   } catch (err) {
     console.error('PLACE_ORDER_ERROR', err);

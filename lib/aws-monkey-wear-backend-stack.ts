@@ -59,7 +59,7 @@ export class AwsMonkeyWearBackendStack extends cdk.Stack {
     bucket.grantRead(fn);
     bucket.grantRead(productDetailsLambda);
     bucket.grantRead(searchLambda);
-    bucket.grantRead(placeOrderLambda);
+    bucket.grantReadWrite(placeOrderLambda);
 
     // ======================
     // 🌐API Gateway
